@@ -12,6 +12,7 @@
 * HTML5;
 * CSS3;
 * JavaScript;
+* React;
 * Методология БЭМ;
 * Адаптиваная верстка;
 * Flexbox;

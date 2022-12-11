@@ -1,4 +1,6 @@
 .header__logo {
+  margin: 0;
+  padding: 0;
   width: 142px;
   object-fit: contain;
   object-position: center;
@@ -7,6 +9,5 @@
 @media screen and (max-width: 920px) {
   .header__logo {
     width: 103.74px;
-    margin-left: 27px;
   }
 }

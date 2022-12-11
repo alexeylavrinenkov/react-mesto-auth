@@ -1,4 +1,5 @@
 import React from 'react';
+import { Redirect, Route, Switch, useHistory } from 'react-router-dom';
 import Header from './Header';
 import Main from './Main';
 import Footer from './Footer';
@@ -6,17 +7,28 @@ import ImagePopup from './ImagePopup';
 import EditProfilePopup from './EditProfilePopup';
 import EditAvatarPopup from './EditAvatarPopup';
 import AddPlacePopup from './AddPlacePopup';
+import Login from './Login';
+import Register from './Register';
+import InfoTooltip from './InfoTooltip';
+import ProtectedRoute from './ProtectedRoute';
+import { authorize, register, checkToken } from '../auth';
 import api from '../utils/api';
 import { CurrentUserContext } from '../contexts/CurrentUserContext';
 import { SelectedCardContext } from '../contexts/SelectedCardContext';
+import { LoggedInContext } from '../contexts/LoggedInContext';
 
 function App() {
   const [isEditAvatarPopupOpen, setIsEditAvatarPopupOpen] = React.useState(false);
   const [isEditProfilePopupOpen, setIsEditProfilePopupOpen] = React.useState(false);
   const [isAddPlacePopupOpen, setIsAddPlacePopupOpen] = React.useState(false);
+  const [isInfoTooltipOpen, setIsInfoTooltipOpen] = React.useState(false);
   const [selectedCard, setSelectedCard] = React.useState({});
   const [currentUser, setCurrentUser] = React.useState({});
+  const [currentEmail, setCurrentEmail] = React.useState('');
   const [cards, setCards] = React.useState([]);
+  const [loggedIn, setLoggedIn] = React.useState(false);
+  const [isSuccessInfoTooltip, setIsSuccessInfoTooltip] = React.useState(false);
+  const history = useHistory();
 
   function handleEditAvatarClick() {
     setIsEditAvatarPopupOpen(true);
@@ -38,6 +50,7 @@ function App() {
     setIsEditAvatarPopupOpen(false);
     setIsEditProfilePopupOpen(false);
     setIsAddPlacePopupOpen(false);
+    setIsInfoTooltipOpen(false);
     setSelectedCard({});
   }
 
@@ -96,6 +109,73 @@ function App() {
       });
   }
 
+  function handleLoginSubmit({ password, email }) {
+    authorize(password, email)
+      .then((data) => {
+        if (data.token) {
+          setIsSuccessInfoTooltip(true);
+          setCurrentEmail(email);
+          localStorage.getItem('token');
+          setLoggedIn(true);
+          history.push('/');
+        } else {
+          setIsSuccessInfoTooltip(false);
+        }
+        setIsInfoTooltipOpen(true);
+      })
+      .catch((err) => {
+        setIsSuccessInfoTooltip(false);
+        setIsInfoTooltipOpen(true);
+        console.log(`Ошибка: ${err.status}`);
+      });
+  }
+
+  function handleRegisterSubmit({ password, email }) {
+    register(password, email)
+      .then((res) => {
+        if (res.data) {
+          setIsSuccessInfoTooltip(true);
+          history.push('/sign-in');
+        } else {
+          setIsSuccessInfoTooltip(false);
+        }
+        setIsInfoTooltipOpen(true);
+      })
+      .catch((err) => {
+        setIsSuccessInfoTooltip(false);
+        setIsInfoTooltipOpen(true);
+        console.log(`Ошибка: ${err.status}`);
+      });
+  }
+
+  function handleLogout() {
+    setCurrentEmail('');
+    setLoggedIn(false);
+    localStorage.removeItem('token');
+  }
+
+  function handleTokenCheck() {
+    if (localStorage.getItem('token')) {
+      const token = localStorage.getItem('token');
+
+      checkToken(token)
+        .then((res) => {
+          if (res.data) {
+            setCurrentEmail(res.data.email);
+            setLoggedIn(true);
+            history.push('/');
+          }
+        })
+        .catch((err) => {
+          console.log(`Ошибка: ${err.status}`);
+        });
+    }
+  }
+
+  React.useEffect(() => {
+    handleTokenCheck();
+  }, []);
+
   React.useEffect(() => {
     api.getUserInfo()
       .then((data) => {
@@ -118,23 +198,68 @@ function App() {
 
   return (
     <CurrentUserContext.Provider value={currentUser}>
-      <SelectedCardContext.Provider value={selectedCard}>
-        <div className="page__content">
-          <Header />
+    <SelectedCardContext.Provider value={selectedCard}>
+    <LoggedInContext.Provider value={loggedIn}>
+      <div className="page__content">
+        <Header
+          onLogout={handleLogout}
+          currentEmail={currentEmail}
+        />
 
-          <Main cards={cards} onCardLike={handleCardLike} onCardDelete={handleCardDelete} onEditAvatar={handleEditAvatarClick} onEditProfile={handleEditProfileClick} onAddPlace={handleAddPlaceClick} onCardClick={handleCardClick} />
+        <Switch>
+          <ProtectedRoute
+            exact path="/"
+            component={Main}
+            cards={cards}
+            onCardLike={handleCardLike}
+            onCardDelete={handleCardDelete}
+            onEditAvatar={handleEditAvatarClick}
+            onEditProfile={handleEditProfileClick}
+            onAddPlace={handleAddPlaceClick}
+            onCardClick={handleCardClick}
+          />
 
-          <Footer />
+          <Route exact path="/sign-in">
+            <Login onSubmit={handleLoginSubmit}></Login>
+          </Route>
 
-          <EditAvatarPopup isOpen={isEditAvatarPopupOpen} onClose={closeAllPopups} onUpdateAvatar={handleUpdateAvatar} />
+          <Route exact path="/sign-up">
+            <Register onSubmit={handleRegisterSubmit}></Register>
+          </Route>
 
-          <EditProfilePopup isOpen={isEditProfilePopupOpen} onClose={closeAllPopups} onUpdateUser={handleUpdateUser} />
+          <Route>
+            {loggedIn ? <Redirect to="/" /> : <Redirect to="/sign-in" />}
+          </Route>
+        </Switch>
 
-          <AddPlacePopup isOpen={isAddPlacePopupOpen} onClose={closeAllPopups} onAddPlace={handleAddPlaceSubmit} />
+        <Footer />
 
-          <ImagePopup onClose={closeAllPopups} />
-        </div>
-      </SelectedCardContext.Provider>
+        <EditAvatarPopup
+          isOpen={isEditAvatarPopupOpen}
+          onClose={closeAllPopups}
+          onUpdateAvatar={handleUpdateAvatar}
+        />
+        <EditProfilePopup
+          isOpen={isEditProfilePopupOpen}
+          onClose={closeAllPopups}
+          onUpdateUser={handleUpdateUser}
+        />
+        <AddPlacePopup
+          isOpen={isAddPlacePopupOpen}
+          onClose={closeAllPopups}
+          onAddPlace={handleAddPlaceSubmit}
+        />
+        <ImagePopup
+          onClose={closeAllPopups}
+        />
+        <InfoTooltip
+          isOpen={isInfoTooltipOpen}
+          onClose={closeAllPopups}
+          isSuccess={isSuccessInfoTooltip}
+        />
+      </div>
+    </LoggedInContext.Provider>
+    </SelectedCardContext.Provider>
     </CurrentUserContext.Provider>
   );
 }
