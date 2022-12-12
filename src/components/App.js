@@ -11,7 +11,7 @@ import Login from './Login';
 import Register from './Register';
 import InfoTooltip from './InfoTooltip';
 import ProtectedRoute from './ProtectedRoute';
-import { authorize, register, checkToken } from '../auth';
+import { authorize, register, checkToken } from '../utils/auth';
 import api from '../utils/api';
 import { CurrentUserContext } from '../contexts/CurrentUserContext';
 import { SelectedCardContext } from '../contexts/SelectedCardContext';
@@ -113,15 +113,11 @@ function App() {
     authorize(password, email)
       .then((data) => {
         if (data.token) {
-          setIsSuccessInfoTooltip(true);
           setCurrentEmail(email);
-          localStorage.getItem('token');
+          localStorage.setItem('token', data.token);
           setLoggedIn(true);
           history.push('/');
-        } else {
-          setIsSuccessInfoTooltip(false);
         }
-        setIsInfoTooltipOpen(true);
       })
       .catch((err) => {
         setIsSuccessInfoTooltip(false);
@@ -135,11 +131,9 @@ function App() {
       .then((res) => {
         if (res.data) {
           setIsSuccessInfoTooltip(true);
+          setIsInfoTooltipOpen(true);
           history.push('/sign-in');
-        } else {
-          setIsSuccessInfoTooltip(false);
         }
-        setIsInfoTooltipOpen(true);
       })
       .catch((err) => {
         setIsSuccessInfoTooltip(false);
@@ -177,24 +171,28 @@ function App() {
   }, []);
 
   React.useEffect(() => {
-    api.getUserInfo()
-      .then((data) => {
-        setCurrentUser(data);
-      })
-      .catch((err) => {
-        console.log(`Ошибка: ${err.status}`);
-      });
-  }, []);
+    if (loggedIn) {
+      api.getUserInfo()
+        .then((data) => {
+          setCurrentUser(data);
+        })
+        .catch((err) => {
+          console.log(`Ошибка: ${err.status}`);
+        });
+    }
+  }, [loggedIn]);
 
   React.useEffect(() => {
-    api.getInitialCards()
-      .then((data) => {
-        setCards(data);
-      })
-      .catch((err) => {
-        console.log(`Ошибка: ${err.status}`);
-      });
-  }, []);
+    if (loggedIn) {
+      api.getInitialCards()
+        .then((data) => {
+          setCards(data);
+        })
+        .catch((err) => {
+          console.log(`Ошибка: ${err.status}`);
+        });
+    }
+  }, [loggedIn]);
 
   return (
     <CurrentUserContext.Provider value={currentUser}>

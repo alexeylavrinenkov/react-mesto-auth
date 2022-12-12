@@ -1,5 +1,13 @@
 export const baseUrl = 'https://auth.nomoreparties.co';
 
+const checkResponse = (res) => {
+  if (res.ok) {
+    return res.json();
+  }
+
+  return Promise.reject(`Ошибка: ${res.status}`)
+}
+
 export const register = (password, email) => {
   return fetch(`${baseUrl}/signup`, {
     method: 'POST',
@@ -9,15 +17,9 @@ export const register = (password, email) => {
     },
     body: JSON.stringify({ password, email })
   })
-    .then((response) => {
-      return response.json();
-    })
     .then((res) => {
-      return res;
+      return checkResponse(res);
     })
-    .catch((err) => {
-      console.log(`Ошибка: ${err.status}`);
-    });
 };
 
 export const authorize = (password, email) => {
@@ -29,19 +31,9 @@ export const authorize = (password, email) => {
     },
     body: JSON.stringify({ password, email })
   })
-    .then((response) => {
-      return response.json();
+    .then((res) => {
+      return checkResponse(res);
     })
-    .then((data) => {
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-
-      return data;
-    })
-    .catch((err) => {
-      console.log(`Ошибка: ${err.status}`);
-    });
 };
 
 export const checkToken = () => {
@@ -52,13 +44,7 @@ export const checkToken = () => {
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     }
   })
-    .then((response) => {
-      return response.json();
+    .then((res) => {
+      return checkResponse(res);
     })
-    .then((data) => {
-      return data;
-    })
-    .catch((err) => {
-      console.log(`Ошибка: ${err.status}`);
-    });
 };

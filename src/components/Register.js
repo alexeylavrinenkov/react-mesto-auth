@@ -22,7 +22,7 @@ function Register({ onSubmit }) {
   return (
     <section className="register">
       <h1 className="register__title">Регистрация</h1>
-      <form onSubmit={handleSubmit} className="register__form" name="register" noValidate>
+      <form onSubmit={handleSubmit} className="register__form" name="register">
         <input onChange={handleEmailChange} value={email} id="register-email-input" className="register__input register__input_type_email" type="email" name="register-email" placeholder="Email" required />
         <span className="register__input-error register-email-input-error"></span>
         <input onChange={handlePasswordChange} value={password} id="register-password-input" className="register__input register__input_type_password" type="password" name="register-password" placeholder="Пароль" required />
